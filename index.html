@@ -256,7 +256,7 @@
     .action-btn-del { background: color-mix(in srgb, var(--text-negative) 15%, transparent); color: var(--text-negative); }
 
     .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; text-align: center; margin-top: 16px; }
-    .cal-day { width: 100%; aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center; border-radius: 10px; font-weight: 700; font-size: 13px; cursor: pointer; transition: 0.2s; color: var(--text-main); }
+    .cal-day { width: 100%; aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center; border-radius: 10px; font-weight: 700; font-size: 13px; cursor: transition: 0.2s; color: var(--text-main); }
     .cal-day:hover { background: var(--border-color); }
     .cal-day.active { background: var(--text-main); color: var(--bg-body) !important; border-radius: 12px; }
     .cal-day.range-start, .cal-day.range-end { background: var(--primary); border-radius: 12px; color: var(--text-on-gradient); }
@@ -1003,7 +1003,7 @@
        KUNCI API ADMIN & KONFIGURASI APLIKASI
        ===================================================================== */
     const APP_CONFIG = {
-        gasUrl: 'https://script.google.com/macros/s/AKfycbyKH_2IE4i6DD1WzMQs8Yq-r7tipOpN2XoMuw5llCTwMSh8tqcAJNqPmSzCLyA-vqfnsw/exec'
+        gasUrl: 'https://script.google.com/macros/s/AKfycbwARl3xdswTJMdM7JNoWIcJLXr3352Xux4cuGk_Sf0II_7_LrJpT1oRiP6RnmSeVQS5NQ/exec'
     };
     const ADMIN_API_URL = APP_CONFIG.gasUrl; 
 
@@ -1338,7 +1338,7 @@
                 btn.innerHTML = 'Daftar Sekarang'; btn.classList.remove('opacity-50');
                 return Swal.fire({ title: 'Pendaftaran Gagal!', text: 'Email ini sudah terdaftar di perangkat ini!', icon: 'error', ...swalErrorConfig });
             }
-            data.registered_users.push({ name: name, email: email, password: pass, gsheet_url: '' });
+            data.registered_users.push({ name: name, email: email, password: pass, gsheet_url: '', status: 'active' });
             saveData();
             setTimeout(() => { handleRegisterSuccess(name, email, pass, btn, swalDarkConfig); }, 800);
         }
@@ -1388,6 +1388,17 @@
                 const resData = await response.json();
                 
                 if (resData.status === 'success') {
+                    // --- TAMBAHAN LOGIK CEK STATUS AKUN CLOUD ---
+                    const accStatus = (resData.account_status || 'active').toLowerCase();
+                    if (accStatus === 'blocked' || accStatus === 'nonaktif' || accStatus === 'blokir') {
+                        btn.innerHTML = 'Masuk'; btn.classList.remove('opacity-50');
+                        return Swal.fire({ title: 'Akses Ditolak!', text: 'Akun Anda telah diblokir. Silakan hubungi Admin.', icon: 'error', ...swalErrorConfig });
+                    } else if (accStatus === 'pending' || accStatus === 'menunggu') {
+                        btn.innerHTML = 'Masuk'; btn.classList.remove('opacity-50');
+                        return Swal.fire({ title: 'Menunggu Konfirmasi', text: 'Akun Anda belum diaktifkan. Silakan konfirmasi ke Admin.', icon: 'info', ...swalDarkConfig });
+                    }
+                    // --------------------------------------------
+                    
                     switchUserLocalState(e, resData.name, resData.gsheet_url);
                     btn.innerHTML = 'Masuk'; btn.classList.remove('opacity-50');
                     saveData();
@@ -1405,6 +1416,17 @@
                 const validUser = data.registered_users.find(u => u.email === e && u.password === p);
 
                 if(validUser) {
+                    // --- TAMBAHAN LOGIK CEK STATUS AKUN LOKAL ---
+                    const accStatus = (validUser.status || 'active').toLowerCase();
+                    if (accStatus === 'blocked' || accStatus === 'nonaktif') {
+                        btn.innerHTML = 'Masuk'; btn.classList.remove('opacity-50');
+                        return Swal.fire({ title: 'Akses Ditolak!', text: 'Akun Anda diblokir di perangkat ini. Silakan hubungi Admin.', icon: 'error', ...swalErrorConfig });
+                    } else if (accStatus === 'pending' || accStatus === 'menunggu') {
+                        btn.innerHTML = 'Masuk'; btn.classList.remove('opacity-50');
+                        return Swal.fire({ title: 'Menunggu Konfirmasi', text: 'Akun Anda belum diaktifkan. Silakan konfirmasi ke Admin.', icon: 'info', ...swalDarkConfig });
+                    }
+                    // --------------------------------------------
+                    
                     switchUserLocalState(e, validUser.name, validUser.gsheet_url);
                     btn.innerHTML = 'Masuk'; btn.classList.remove('opacity-50');
                     saveData(); 
